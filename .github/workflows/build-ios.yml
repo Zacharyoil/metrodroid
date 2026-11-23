@@ -70,7 +70,12 @@ jobs:
         # phase then finds all Gradle tasks up to date.
         env:
           SDK_NAME: iphoneos   # makes build.gradle target ios_arm64 (device)
+          IPHONEOS_DEPLOYMENT_TARGET: '13.0'
         run: |
+          # proto/build.gradle passes no -isysroot for the device target; inside
+          # Xcode clang picks the iOS SDK up from SDKROOT, so mirror that here.
+          export SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
+          echo "SDKROOT=$SDKROOT"
           ./gradlew :proto:mainSharedLibrary
           ./gradlew :proto:mainStaticLibrary
           ./gradlew :generateLocalize :iOSLanguages :iOSMappedLanguages
