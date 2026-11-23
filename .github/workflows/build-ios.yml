@@ -63,6 +63,21 @@ jobs:
           /usr/libexec/PlistBuddy -c "Add :com.apple.developer.nfc.readersession.formats:0 string TAG" "$ENT"
           cat "$ENT"
 
+      - name: Pre-build Kotlin framework and localized strings
+        # Xcode's own "run Gradle" script phase generates .strings files that a
+        # later copy phase reads, but Xcode doesn't know that and runs them in
+        # parallel. Generating everything up front avoids the race; the script
+        # phase then finds all Gradle tasks up to date.
+        env:
+          SDK_NAME: iphoneos   # makes build.gradle target ios_arm64 (device)
+        run: |
+          ./gradlew :proto:mainSharedLibrary
+          ./gradlew :proto:mainStaticLibrary
+          ./gradlew :generateLocalize :iOSLanguages :iOSMappedLanguages
+          ./gradlew :packForXCode -PXCODE_CONFIGURATION="$CONFIGURATION"
+          ls native/metrodroid/metrodroid/metrodroid/*.lproj/InfoPlist.strings
+          ls build/xcode-frameworks
+
       - name: Install signing certificate and profile
         if: env.HAS_SIGNING == 'true'
         env:
