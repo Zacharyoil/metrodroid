@@ -63,6 +63,17 @@ jobs:
           /usr/libexec/PlistBuddy -c "Add :com.apple.developer.nfc.readersession.formats:0 string TAG" "$ENT"
           cat "$ENT"
 
+      - name: Fix black screen on launch
+        # Upstream's UIKit-lifecycle change makes AppDelegate hand out a scene
+        # configuration, but SceneDelegate.swift isn't in the Xcode project and
+        # Info.plist has no scene manifest, so the scene gets no window. Drop the
+        # override so the app uses UIMainStoryboardFile (Main) as before.
+        run: |
+          F=native/metrodroid/metrodroid/AppDelegate.swift
+          perl -0pi -e 's/\r?\n[ \t]*func application\(_ application: UIApplication, configurationForConnecting.*?\n    \}\r?\n//s' "$F"
+          if grep -q configurationForConnecting "$F"; then echo "patch failed"; exit 1; fi
+          grep -n "func " "$F"
+
       - name: Pre-build Kotlin framework and localized strings
         # Xcode's own "run Gradle" script phase generates .strings files that a
         # later copy phase reads, but Xcode doesn't know that and runs them in
